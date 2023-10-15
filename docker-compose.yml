@@ -1,0 +1,56 @@
+version: "3.7"
+services:
+  web:
+    image: nginx:latest
+    container_name: web_server
+    restart: unless-stopped
+    working_dir: /var/www
+    ports:
+      - 8000:80
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx/conf.d/:/etc/nginx/conf.d/
+    networks:
+      - docker-laravel
+
+  app:
+    container_name: app
+    build:
+      args:
+        user: ducdv
+        uid: 1000
+      context: ./
+      dockerfile: Dockerfile
+    image: docker-laravel
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+      - ./docker/php/docker-laravel.ini:/usr/local/etc/php/conf.d/local.ini
+    networks:
+      - docker-laravel
+
+  database:
+    image: mysql:latest
+    container_name: database
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    volumes:
+      - dbdata:/var/lib/mysql/
+      - ./mysql/my.cnf:/etc/mysql/my.cnf
+    networks:
+      - docker-laravel
+
+networks:
+  docker-laravel:
+    driver: bridge
+volumes:
+  dbdata:
+    driver: local
